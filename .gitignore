@@ -1,0 +1,20 @@
+# Cargo build artifacts
+/target/
+**/target/
+Cargo.lock
+
+# Test binary build outputs
+/tests/bin/
+*.o
+*.so
+*.a
+*.dylib
+*.elf
+
+# IDE & OS files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+*.log
