@@ -6,6 +6,7 @@ members = [
     "tests",
     "tools/maarch64-runner",
     "tools/maarch64-diff-test",
+    "tools/maarch64-busybox-bench",
 ]
 
 [workspace.package]
