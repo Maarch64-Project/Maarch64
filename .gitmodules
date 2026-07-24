@@ -1,0 +1,12 @@
+[submodule "core"]
+	path = core
+	url = git@github.com:Maarch64-Project/maarch64-core.git
+[submodule "thunks"]
+	path = thunks
+	url = git@github.com:Maarch64-Project/maarch64-thunks.git
+[submodule "tools"]
+	path = tools
+	url = git@github.com:Maarch64-Project/maarch64-tools.git
+[submodule "docs"]
+	path = docs
+	url = git@github.com:Maarch64-Project/maarch64-docs.git
