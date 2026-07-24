@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "core",
     "thunks",
+    "tests",
     "tools/maarch64-runner",
     "tools/maarch64-diff-test",
 ]
