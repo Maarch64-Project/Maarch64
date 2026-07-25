@@ -8,6 +8,7 @@ members = [
     "tools/maarch64-diff-test",
     "tools/maarch64-busybox-bench",
 ]
+default-members = ["tools/maarch64-runner"]
 
 [workspace.package]
 version = "0.1.0"
