@@ -7,6 +7,7 @@ members = [
     "tools/maarch64-runner",
     "tools/maarch64-diff-test",
     "tools/maarch64-busybox-bench",
+    "tools/maarch64-thunk-gen",
 ]
 default-members = ["tools/maarch64-runner"]
 
