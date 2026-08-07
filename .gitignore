@@ -18,3 +18,4 @@ Cargo.lock
 *.swp
 *~
 *.log
+sysroot/
