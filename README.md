@@ -1,26 +1,35 @@
 # Maarch64
 
-**Maarch64** is a high-performance, user-space AArch64 (ARM64) binary translator / emulator designed to execute AArch64 Linux binaries natively on x86_64 host environments.
+**Maarch64** is a high-performance, platform-agnostic AArch64 (ARM 64-bit) user-space binary translator designed to execute AArch64 binaries—from both **Linux (ELF64)** and **macOS (Mach-O ARM64)**—natively on x86_64 host environments with near-native throughput.
 
-Unlike full-system emulators such as QEMU, Maarch64 prioritizes near-native execution speed by utilizing **Library Wrapping (Thunking)**—directly intercepting shared library calls (`glibc`, `libX11`, `OpenGL`, etc.) and redirecting them to the host x86_64 system libraries.
+Unlike traditional full-system emulators (such as QEMU), Maarch64 prioritizes native execution speed by combining a **hybrid Cranelift JIT engine** with **Zero-Cost Library Passthrough Thunking**—directly intercepting shared library calls (`glibc`, `libX11`, `libEGL`, `OpenGL`, `ALSA`, `PulseAudio`, `LibVLC`, `Metal`) and delegating execution directly to the host x86_64 system libraries.
 
 ---
 
-## 🏗️ Repository Architecture
+## 🏗️ Repository & Module Architecture
 
 Maarch64 is structured as a modular Rust Cargo Workspace using Git submodules under the `Maarch64-Project` GitHub organization:
 
 | Submodule | Repository | Description |
 | :--- | :--- | :--- |
-| **`core`** | [`maarch64-core`](https://github.com/Maarch64-Project/maarch64-core) | Core engine: CPU state (`CpuContext`), `mmap`-backed virtual memory (`MemoryManager`), ELF64 loader (`ElfLoader`), AArch64 instruction decoder/interpreter, and Linux system call dispatcher (`SyscallDispatcher`). |
-| **`thunks`** | [`maarch64-thunks`](https://github.com/Maarch64-Project/maarch64-thunks) | Library wrapping & dynamic PLT/GOT symbol interception framework. |
+| **`core`** | [`maarch64-core`](https://github.com/Maarch64-Project/maarch64-core) | Core engine: `CpuContext`, `MemoryManager`, `AutoLoader` (ELF64 & Mach-O ARM64), `SyscallDispatcher` (Linux & Darwin BSD/Mach Traps), Cranelift JIT compiler, and `bad64` interpreter fallback. |
+| **`thunks`** | [`maarch64-thunks`](https://github.com/Maarch64-Project/maarch64-thunks) | Passthrough library wrapping registry (`gpu`, `audio`, `vlc`, `darwin` ObjC, `metal`). |
 | **`tools`** | [`maarch64-tools`](https://github.com/Maarch64-Project/maarch64-tools) | CLI tools: `maarch64-runner` (binary executor) and `maarch64-diff-test` (Unicorn Engine oracle differential test harness). |
-| **`tests`** | [`maarch64-tests`](https://github.com/Maarch64-Project/maarch64-tests) | AArch64 test fixtures (`asm/`, `c/`, `rust/`), cross-compilation build script (`build_fixtures.sh`), and integration unit test suite. |
-| **`docs`** | [`maarch64-docs`](https://github.com/Maarch64-Project/maarch64-docs) | Architecture specification and roadmap documentation. |
+| **`tests`** | [`maarch64-tests`](https://github.com/Maarch64-Project/maarch64-tests) | AArch64 test fixtures (`asm/`, `c/`, `rust/`), cross-compilation build scripts, and integration test suite. |
+| **`docs`** | [`maarch64-docs`](https://github.com/Maarch64-Project/maarch64-docs) | Architecture specifications and documentation. |
 
 ---
 
-## 🛠️ Prerequisites
+## 📚 Technical Documentation
+
+- 📐 **[Architecture Overview](docs/ARCHITECTURE.md)**: High-level system diagram and crate layout.
+- 🌐 **[Multi-OS Binary Translation](docs/MULTI_OS.md)**: ELF64 vs Mach-O ARM64 loading, System V vs Darwin ABI, Linux & Darwin syscall dispatching.
+- ⚡ **[Cranelift JIT Engine](docs/JIT_ENGINE.md)**: Dynamic translation pipeline, register mapping, supported opcodes, and interpreter fallback.
+- 🔌 **[Library Passthrough Thunking](docs/THUNKS.md)**: Host GPU (EGL/GLX), Audio (ALSA/Pulse), LibVLC, and Metal framework passthrough architecture.
+
+---
+
+## 🛠️ Prerequisites & Setup
 
 Install required build dependencies and cross-compilers (Ubuntu/Debian):
 
@@ -35,7 +44,7 @@ rustup target add aarch64-unknown-linux-gnu
 
 ---
 
-## 🚀 Quick Start & Development Workflow
+## 🚀 Quick Start & Execution
 
 ### 1. Clone Repository with Submodules
 
@@ -44,52 +53,21 @@ git clone --recursive git@github.com:Maarch64-Project/Maarch64.git
 cd Maarch64
 ```
 
-### 2. Build AArch64 Test Binary Fixtures
-
-Cross-compile all test fixtures (`asm/*.s`, `c/*.c`, `rust/*.rs`) into `tests/bin/`:
+### 2. Build Workspace
 
 ```bash
-bash tests/build_fixtures.sh
+cargo build --workspace
 ```
 
-### 3. Run Unit & Integration Tests
-
-Run the full Rust workspace test suite:
+### 3. Execute ARM64 Binaries
 
 ```bash
-cargo test --workspace
+# Execute in interpreter mode
+./target/debug/maarch64 ./sysroot/aarch64-rootfs/usr/bin/vlc
+
+# Execute with Cranelift JIT acceleration
+./target/debug/maarch64 --jit ./sysroot/aarch64-rootfs/usr/bin/vlc
 ```
-
-### 4. Run Unicorn Engine Differential State Verification
-
-Execute step-by-step bit-exact register verification against the Unicorn Engine oracle:
-
-```bash
-cargo run -p maarch64-diff-test
-```
-
-### 5. Execute an ARM64 Binary via Maarch64 Runner
-
-Execute a cross-compiled AArch64 binary using the emulated translator:
-
-```bash
-# Assembly test target
-cargo run -p maarch64-runner -- tests/bin/hello_asm
-
-# Rust test target
-cargo run -p maarch64-runner -- tests/bin/hello_rust
-```
-
----
-
-## 🌿 Branch & Contribution Strategy
-
-- **`main`**: Production & stable release branch.
-- **`dev`**: Active development and integration branch.
-- **Feature Development Flow**:
-  1. Create a feature branch from `dev`: `git checkout dev && git checkout -b feature/issue-#-name`
-  2. Implement changes and write unit tests in `tests/`
-  3. Submit a Pull Request targeting `dev` for review and automated CI checks.
 
 ---
 

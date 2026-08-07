@@ -1,97 +1,65 @@
-# Maarch64 (日本語ドキュメント)
+# Maarch64 (マーチ64)
 
-**Maarch64** は、x86_64 ホスト環境上で AArch64 (ARM64) Linux バイナリを高速に実行するための**ユーザー空間バイナリトランスレータ / エミュレータ**です。
+**Maarch64** は、AArch64 (ARM 64-bit) バイナリを x86_64 ホスト環境上でネイティブ同等の速度で直接実行する、プラットフォーム非依存のユーザースペース動的バイナリ変換エンジン（Binary Translator）です。
 
-QEMU などのフルシステムエミュレータとは異なり、システムライブラリ呼び出し (`glibc`, `libX11`, `OpenGL` 等) をホスト (x86_64) のネイティブライブラリへダイレクトに転送する **Library Wrapping (Thunking)** 手法を採用し、ネイティブに近い超高速な動作を目指しています。
+Linux の **ELF64** バイナリに加えて、macOS の **Mach-O ARM64** バイナリの自動判別ロードにも対応しています。
+
+QEMU などの全文脈エミュレータとは異なり、Maarch64 は **ハイブリッド Cranelift JIT エンジン** と **ゼロコスト・ライブラリ・パススルー（Thunking）** を組み合わせ、共有ライブラリ呼び出し (`glibc`, `libX11`, `libEGL`, `OpenGL`, `ALSA`, `PulseAudio`, `LibVLC`, `Metal`) をホスト x86_64 のネイティブライブラリへ直接ブリッジ処理することで、極めて高い描画・実行パフォーマンスを実現します。
 
 ---
 
-## 🏗️ リポジトリ構成
+## 🏗️ ワークスペース構成
 
-Maarch64 は、GitHub 組織 `Maarch64-Project` の配下で Git サブモジュールを活用したモジュール構造の Rust ワークスペースとして管理されています。
+Maarch64 は `Maarch64-Project` GitHub 組織配下の Git サブモジュールによって設計されたモジュール式 Rust Cargo ワークスペースです：
 
-| サブモジュール | リポジトリ | 概要・役割 |
+| サブモジュール | リポジトリ | 説明 |
 | :--- | :--- | :--- |
-| **`core`** | [`maarch64-core`](https://github.com/Maarch64-Project/maarch64-core) | コアエンジン: CPU状態 (`CpuContext`), `mmap` 仮想メモリ (`MemoryManager`), ELF64ローダー (`ElfLoader`), AArch64デコーダ/インタプリタ, Linuxシステムコール変換 (`SyscallDispatcher`) |
-| **`thunks`** | [`maarch64-thunks`](https://github.com/Maarch64-Project/maarch64-thunks) | ライブラトラップ・ラッパー (`glibc` 関数パススルー基盤) |
-| **`tools`** | [`maarch64-tools`](https://github.com/Maarch64-Project/maarch64-tools) | CLIツール群: バイナリ実行用 `maarch64-runner`, Unicorn Engine 差分検証用 `maarch64-diff-test` |
-| **`tests`** | [`maarch64-tests`](https://github.com/Maarch64-Project/maarch64-tests) | AArch64 テストソース (`asm/`, `c/`, `rust/`), クロスコンパイル生成スクリプト (`build_fixtures.sh`), 統合ユニットテスト |
-| **`docs`** | [`maarch64-docs`](https://github.com/Maarch64-Project/maarch64-docs) | 設計仕様書・アーキテクチャドキュメント |
+| **`core`** | [`maarch64-core`](https://github.com/Maarch64-Project/maarch64-core) | コアエンジン: `CpuContext`, `MemoryManager`, `AutoLoader` (ELF64 & Mach-O ARM64), `SyscallDispatcher` (Linux & Darwin BSD/Mach Traps), Cranelift JIT コンパイラ, `bad64` インタプリタ。 |
+| **`thunks`** | [`maarch64-thunks`](https://github.com/Maarch64-Project/maarch64-thunks) | パススルーライブラリブリッジ (`gpu`, `audio`, `vlc`, `darwin` ObjC, `metal`)。 |
+| **`tools`** | [`maarch64-tools`](https://github.com/Maarch64-Project/maarch64-tools) | CLI ツール: `maarch64-runner` (バイナリ実行器), `maarch64-diff-test` (Unicorn Engine 差分検証器)。 |
+| **`tests`** | [`maarch64-tests`](https://github.com/Maarch64-Project/maarch64-tests) | AArch64 テスト用フィクスチャ (`asm/`, `c/`, `rust/`), クロスコンパイルスクリプト, 統合テスト。 |
+| **`docs`** | [`maarch64-docs`](https://github.com/Maarch64-Project/maarch64-docs) | アーキテクチャ仕様書および技術ドキュメント。 |
 
 ---
 
-## 🛠️ 事前準備 (開発環境のセットアップ)
+## 📚 技術ドキュメント
 
-ビルドに必要な依存パッケージおよび AArch64 クロスコンパイラをインストールします (Ubuntu/Debian):
-
-```bash
-# 1. 必要パッケージと AArch64 クロスコンパイラのインストール
-sudo apt-get update
-sudo apt-get install -y gcc-aarch64-linux-gnu libunicorn-dev
-
-# 2. Rust ツールチェーンに AArch64 ターゲットを追加
-rustup target add aarch64-unknown-linux-gnu
-```
+- 📐 **[全体アーキテクチャ仕様書 (ARCHITECTURE.md)](docs/ARCHITECTURE.md)**: 全体システム構造とコンポーネント構成図。
+- 🌐 **[マルチOSバイナリ変換仕様 (MULTI_OS.md)](docs/MULTI_OS.md)**: ELF64 vs Mach-O ARM64 ロード, System V vs Darwin ABI, Linux & Darwin システムコールルーティング。
+- ⚡ **[Cranelift JIT エンジン仕様 (JIT_ENGINE.md)](docs/JIT_ENGINE.md)**: 動的コンパイルパイプライン, レジスタマッピング, 対応命令セット, インタプリタフォールバック。
+- 🔌 **[ライブラリ・パススルー仕様 (THUNKS.md)](docs/THUNKS.md)**: ホスト GPU (EGL/GLX), オーディオ (ALSA/Pulse), LibVLC, Metal フレームワーク パススルー構造。
 
 ---
 
-## 🚀 基本的な開発・テスト手順 (ワークフロー)
+## 🚀 クイックスタート & 実行方法
 
-### 1. サブモジュールを含めてリポジトリをクローン
+### 1. リポジトリのクローン
 
 ```bash
 git clone --recursive git@github.com:Maarch64-Project/Maarch64.git
 cd Maarch64
 ```
 
-すでにクローン済みの場合は、以下で最新状態に更新します：
+### 2. ワークスペースのビルド
+
 ```bash
-git submodule update --init --recursive
+cargo build --workspace
 ```
 
-### 2. テスト用 AArch64 バイナリを一括ビルド
-
-`tests/fixtures/` 配下のテストソースコード (`asm/*.s`, `c/*.c`, `rust/*.rs`) を `tests/bin/` へクロスコンパイルします：
+### 3. ARM64 バイナリの実行
 
 ```bash
-bash tests/build_fixtures.sh
-```
+# インタプリタモードで実行
+./target/debug/maarch64 ./sysroot/aarch64-rootfs/usr/bin/vlc
 
-### 3. 単体テスト・統合テストの実行
-
-ワークスペース全体の Rust テストを実行します：
-
-```bash
-cargo test --workspace
-```
-
-### 4. Unicorn Engine との命令ステップ差分検証テスト
-
-Unicorn Engine (ハードウェアレベルの AArch64 リファレンス) と `maarch64-core` のレジスタ状態を1ステップずつ比較検証します：
-
-```bash
-cargo run -p maarch64-diff-test
-```
-
-### 5. ARM64 バイナリを Runner で実行
-
-クロスコンパイルした AArch64 バイナリを指定して、Maarch64 エミュレータ上で実行します：
-
-```bash
-# アセンブリのテストバイナリを実行
-cargo run -p maarch64-runner -- tests/bin/hello_asm
-
-# Rust のテストバイナリを実行
-cargo run -p maarch64-runner -- tests/bin/hello_rust
+# Cranelift JIT アクセラレーション有効化で実行
+./target/debug/maarch64 --jit ./sysroot/aarch64-rootfs/usr/bin/vlc
 ```
 
 ---
 
-## 🌿 ブランチ・開発運用ルール
+## 📄 ライセンス
 
-- **`main`**: 安定版リリースブランチ
-- **`dev`**: 開発・統合ブランチ
-- **開発フロー**:
-  1. `dev` から機能ブランチを作成: `git checkout dev && git checkout -b feature/issue-#-name`
-  2. 機能実装および `tests/` 内にテストコードを追加
-  3. `dev` ブランチ宛てに Pull Request を作成し、自動 CI 検証後にマージ
+Dual-licensed under either of:
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT License ([LICENSE-MIT](LICENSE-MIT))
