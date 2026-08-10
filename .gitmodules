@@ -13,3 +13,7 @@
 [submodule "tests"]
 	path = tests
 	url = git@github.com:Maarch64-Project/maarch64-tests.git
+[submodule "android"]
+	path = android
+	url = git@github.com:Maarch64-Project/maarch64-android.git
+
